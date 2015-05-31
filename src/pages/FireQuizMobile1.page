@@ -1,0 +1,154 @@
+<apex:page controller="FireQuizerController" action="{!init}" sidebar="false" showHeader="false" standardStylesheets="false" docType="html-5.0" title="Fire Quizer">
+    <style type="text/css">
+        .lAlign {padding-left:4px;}
+        .panelStyle {font-family:arial;
+                     font-size:9pt;
+                     color:#484848;
+                     } 
+        .panelStyleDot {font-family:arial;
+                     font-size:9pt;
+                     color:#484848;
+                     border-style: dotted;
+                     } 
+        .bold {font-weight:bold;}
+        .right {text-align:right;}
+        .left {text-align:left;}
+        .loadStyle {font-weight:bold;color:purple;}
+        .updateStyle {color:blue;}
+    </style>
+    <apex:pageBlock id="qualifyEmailLeads">
+        <div id="searchLoadingBlock"  style="height:1000px;">
+            <apex:form id="quizForm">
+            
+                <apex:actionstatus id="goStat">
+                    <apex:facet name="start">
+                        <div class="waitingSearchDiv" id="el_loading" style="background-color:#fbfbfb; height:100%; opacity:0.65; width:100%;"> 
+                            <div class="waitingHolder" style="top: 84px; width: 91px;">
+                                <img class="waitingImage" src="/img/loading.gif" title="Please Wait..." />
+                                <span class="waitingDescription">Working...</span>
+                            </div>
+                        </div>
+                    </apex:facet>
+                </apex:actionstatus>
+                
+                <apex:outputText value="Select Quiz Group:" style="font-weight:bold" rendered="{!quizStage == 0}"/>
+                <apex:outputText value="Select Quiz:" style="font-weight:bold" rendered="{!quizStage == 1}"/>&nbsp;&nbsp;
+                
+                <apex:commandButton value="Previous" action="{!back}" rendered="{!quizStage == 1}" rerender="quizForm" status="goStat"/>
+                
+                <apex:selectList id="possibleQ" value="{!selectedQuiz}" multiselect="false" size="1" rendered="{!quizStage == 0}">
+                    <apex:selectOptions value="{!possibleQuizes}"/>
+                </apex:selectList>
+                
+                <apex:selectList id="subQ" value="{!selectedSubQuiz}" multiselect="false" size="1" rendered="{!quizStage == 1}">
+                    <apex:selectOptions value="{!possibleSubQuizes}"/>
+                </apex:selectList>&nbsp;&nbsp;
+                
+                <apex:outputText value="Starting Street:" style="font-weight:bold;" rendered="{!IF(quizStage == 1 &&(selectedQuiz == 'Broadway East' || selectedQuiz == 'Broadway West' || selectedQuiz == 'Downtown' || selectedQuiz == 'Ellsworth South'),true,false)}"/>
+                <apex:selectList id="minS" value="{!minStreetString}" multiselect="false" size="1" rendered="{!IF(quizStage == 1 &&(selectedQuiz == 'Broadway East' || selectedQuiz == 'Broadway West' || selectedQuiz == 'Downtown' || selectedQuiz == 'Ellsworth South'),true,false)}">
+                    <apex:selectOptions value="{!minStreets}"/>
+                </apex:selectList>&nbsp;&nbsp;
+                
+                <apex:outputText value="Ending Street:" style="font-weight:bold;" rendered="{!IF(quizStage == 1 &&(selectedQuiz == 'Broadway East' || selectedQuiz == 'Broadway West' || selectedQuiz == 'Downtown' || selectedQuiz == 'Ellsworth South'),true,false)}"/>
+                <apex:selectList id="maxS" value="{!maxStreetString}" multiselect="false" size="1" rendered="{!IF(quizStage == 1 &&(selectedQuiz == 'Broadway East' || selectedQuiz == 'Broadway West' || selectedQuiz == 'Downtown' || selectedQuiz == 'Ellsworth South'),true,false)}">
+                    <apex:selectOptions value="{!maxStreets}"/>
+                </apex:selectList>&nbsp;&nbsp;
+                
+                <apex:commandButton value="Next" action="{!goToStage1}" rendered="{!quizStage == 0}" rerender="quizForm" status="goStat"/>
+                <apex:commandButton value="Next" action="{!goToStage2}" rendered="{!quizStage == 1}" rerender="quizForm" status="goStat"/>
+                
+                
+                <apex:outputPanel id="buttonBlock" rendered="{!quizStage == 2}">
+                <b>Showing:&nbsp; <apex:outputText value="{!IF(totalQuestions==0, 0, qIndex + 1)}"/> of&nbsp; <apex:outputText value="{!totalQuestions}"/></b>
+                <apex:commandButton value="Previous" action="{!decrementQIndex}" rendered="{!quizStage == 2}" disabled="{!IF(qIndex==0, true, false)}" rerender="quizForm" status="goStat"/>
+                <apex:commandButton value="Next" action="{!incrementQIndex}" rendered="{!quizStage == 2}" disabled="{!IF((totalQuestions==0 || qIndex==(totalQuestions-1)), true, false)}" rerender="quizForm" status="goStat"/>
+                <apex:commandButton value="Grade" action="{!goToStage3}" rendered="{!IF(qIndex==(totalQuestions-1) && quizStage==2, true, false)}" rerender="quizForm" status="goStat"/>
+                
+                            
+                            <apex:variable value="{!IF(totalQuestions > 0, questionWrap[qIndex], null)}" var="thisQ" />
+                            
+                            <div style="width:100%; float:left;">
+                                <apex:panelGrid columns="2" styleClass="panelStyle" columnClasses="right bold, left" cellPadding="2px" style="max-width:50%; float:left;">
+                                                                        
+                                    <apex:outputLabel value="Building: " rendered="{!IF(thisQ.qd.Type__c == 'Building', true, false)}"/> 
+                                    <apex:outputField value="{!thisQ.qd.Building__c}" rendered="{!IF(thisQ.qd.Type__c == 'Building' && selectedSubQuiz != 'byName', true, false)}"/>
+                                    <apex:selectRadio layout="pageDirection" id="buildNameAns" value="{!thisQ.answerString}" rendered="{!IF(thisQ.qd.Type__c == 'Building' && selectedSubQuiz == 'byName', true, false)}">
+                                        <apex:selectOptions value="{!thisQ.pAnswers}"/>
+                                    </apex:selectRadio>
+                                    
+                                    <apex:outputLabel value="Street Name: " rendered="{!IF(thisQ.qd.Type__c == 'Street', true, false)}"/> 
+                                    <apex:outputField value="{!thisQ.qd.Street_Name__c}" rendered="{!IF(thisQ.qd.Type__c == 'Street' && selectedSubQuiz != 'byName', true, false)}"/>
+                                    <apex:selectRadio layout="pageDirection" id="streetNameAnswer" value="{!thisQ.answerString}" rendered="{!IF(thisQ.qd.Type__c == 'Street' && selectedSubQuiz == 'byName', true, false)}">
+                                        <apex:selectOptions value="{!thisQ.pAnswers}"/>
+                                    </apex:selectRadio>
+                                    
+                                    <apex:outputLabel value="Street Number: " rendered="{!IF(thisQ.qd.Type__c == 'Street', true, false)}"/> 
+                                    <apex:outputText value="{!thisQ.qd.Street_Number__c}" rendered="{!IF(thisQ.qd.Type__c == 'Street' && selectedSubQuiz != 'byNumber', true, false)}"/>
+                                    <apex:selectRadio layout="pageDirection" id="streetNumAnswer" value="{!thisQ.answerString}" rendered="{!IF(thisQ.qd.Type__c == 'Street' && selectedSubQuiz == 'byNumber', true, false)}">
+                                        <apex:selectOptions value="{!thisQ.pAnswers}"/>
+                                    </apex:selectRadio>
+                                    
+                                    <apex:outputLabel value="District: " rendered="{!IF(thisQ.qd.Type__c == 'Station', true, false)}"/> 
+                                    <apex:outputField value="{!thisQ.qd.District__c}" rendered="{!IF(thisQ.qd.Type__c == 'Station' && selectedSubQuiz != 'byDistrict', true, false)}"/>
+                                    <apex:selectRadio layout="pageDirection" id="distAns" value="{!thisQ.answerString}" rendered="{!IF(thisQ.qd.Type__c == 'Station' && selectedSubQuiz == 'byDistrict', true, false)}">
+                                        <apex:selectOptions value="{!thisQ.pAnswers}"/>
+                                    </apex:selectRadio>
+                                    
+                                    <apex:outputLabel value="Station: " rendered="{!IF(thisQ.qd.Type__c == 'Station', true, false)}"/> 
+                                    <apex:outputField value="{!thisQ.qd.Station__c}" rendered="{!IF(thisQ.qd.Type__c == 'Station' && selectedSubQuiz != 'byName', true, false)}"/>
+                                    <apex:selectRadio layout="pageDirection" id="statAns" value="{!thisQ.answerString}" rendered="{!IF(thisQ.qd.Type__c == 'Station' && selectedSubQuiz == 'byName', true, false)}">
+                                        <apex:selectOptions value="{!thisQ.pAnswers}"/>
+                                    </apex:selectRadio>
+                                    
+                                    <apex:outputLabel value="Location: " rendered="{!IF(thisQ.qd.Type__c == 'Station' ||thisQ.qd.Type__c == 'Building', true, false)}"/> 
+                                    <apex:outputField value="{!thisQ.qd.Location__c}" rendered="{!IF((thisQ.qd.Type__c == 'Station' ||thisQ.qd.Type__c == 'Building') && selectedSubQuiz != 'byLocation', true, false)}"/>
+                                    <apex:selectRadio layout="pageDirection" id="locAns" value="{!thisQ.answerString}" rendered="{!IF((thisQ.qd.Type__c == 'Station' ||thisQ.qd.Type__c == 'Building') && selectedSubQuiz == 'byLocation', true, false)}">
+                                        <apex:selectOptions value="{!thisQ.pAnswers}"/>
+                                    </apex:selectRadio>
+                                    
+                                    
+                                    
+                                </apex:panelGrid>
+                            </div>
+                
+                </apex:outputPanel>
+                <apex:outputPanel id="gradeBlock" rendered="{!quizStage == 3}">
+                    <apex:commandButton value="Start Again" action="{!init}" rerender="quizForm" status="goStat"/>
+                    <br/>
+                    <br/>
+                    
+                    <b>Grade: </b> <apex:outputText value="{!grade}%"/>
+                    <b>Missed: </b> <apex:outputText value="{!Missed}"/>
+                    <b>Correct: </b> <apex:outputText value="{!correct}"/>
+                    <br/>
+                    
+                    <apex:pageBlockTable columns="4" value="{!questionWrap}" var="thisQ" styleClass="panelStyleDot" columnClasses="right bold, left" cellPadding="2px" style="max-width:50%; float:left;">
+                    
+                                    <apex:column >
+                                    <apex:outputField value="{!thisQ.qd.Building__c}" rendered="{!IF(thisQ.qd.Type__c == 'Building' && selectedSubQuiz == 'byLocation', true, false)}"/>
+                                     
+                                    <apex:outputField value="{!thisQ.qd.Street_Name__c}" rendered="{!IF(thisQ.qd.Type__c == 'Street' && selectedSubQuiz == 'byNumber', true, false)}"/>
+                                    
+                                    <apex:outputText value="{!thisQ.qd.Street_Number__c}" rendered="{!IF(thisQ.qd.Type__c == 'Street' && selectedSubQuiz == 'byName', true, false)}"/>
+                                    
+                                    
+                                    <apex:outputField value="{!thisQ.qd.Station__c}" rendered="{!IF(thisQ.qd.Type__c == 'Station' && (selectedSubQuiz == 'byDistrict' || selectedSubQuiz == 'byLocation'), true, false)}"/>
+                                    
+                                    <apex:outputField value="{!thisQ.qd.Location__c}" rendered="{!IF((thisQ.qd.Type__c == 'Station' ||thisQ.qd.Type__c == 'Building') && selectedSubQuiz == 'byName', true, false)}"/>
+                                    
+                                    </apex:column>
+                    
+                                    <apex:column value="{!thisQ.answerString}" style="BACKGROUND-COLOR:{!IF(thisQ.answerString != thisQ.correctString, '#FF0000', null)}" headervalue="Your Answer"/>
+                                    
+                                    <apex:column value="{!thisQ.correctString}" rendered="{!IF(thisQ.correctString != '', true, false)}" headerValue="Answer"/>
+                                    <apex:column value="{!thisQ.correctInteger}" rendered="{!IF(thisQ.correctInteger != -1, true, false)}" headerValue="Answer"/>
+                    
+                    </apex:pageBlockTable>
+                
+                </apex:outputPanel>
+    
+            </apex:form>
+        </div>
+    </apex:pageBlock>
+        
+</apex:page>

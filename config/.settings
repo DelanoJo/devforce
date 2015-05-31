@@ -1,0 +1,19 @@
+{
+    "username": "delano_j@outlook.com", 
+    "environment": "developer", 
+    "project_name": "Developer", 
+    "workspace": "D:\\ForceProjects", 
+    "org_url": "", 
+    "namespace": "DelanoLightning", 
+    "id": "IYWZ42FHVRZAGCCCM9NQ59L7KJSX002M", 
+    "metadata_container": "1dci0000000WJKiAAO", 
+    "subscription": [
+        "ApexClass", 
+        "ApexComponent", 
+        "ApexPage", 
+        "ApexTrigger", 
+        "StaticResource", 
+        "CustomObject", 
+        "Profile"
+    ]
+}
